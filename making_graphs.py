@@ -11,14 +11,15 @@ import glob, csv, math
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
+import datetime
 
-MANUAL_VERT_ADJ = 0.2
-MANUAL_HORIZ_ADJ = -14.5
+MANUAL_VERT_ADJ = 0
+MANUAL_HORIZ_ADJ = 0
 ARM_LEN_M = 0.69  # METERS (ESTIMATE FOR NOW)
 
 def main():
     # This takes a folder that contains both files to be graphed in it.
-    folder = "CH2M/Trial1_Slow"
+    folder = "ChestAA.CH2M.Run1.Fast copy/"
 
     # This is used to find the correct file name for muscle and the correct
     # columns for stamp
@@ -35,8 +36,8 @@ def main():
     moca.smooth()  # Helps sometimes, hurts sometimes
 
     # Manual adjustment for moca coordinates - trying to make this automatic
-    #moca.vert_adj(MANUAL_VERT_ADJ)
-    #moca.horiz_adj(MANUAL_HORIZ_ADJ)
+    moca.vert_adj(MANUAL_VERT_ADJ)
+    moca.horiz_adj(MANUAL_HORIZ_ADJ)
 
     # Prints out the peaks coordinates - helps for debugging peaks
     #plt.plot(moca.sec, moca.vert, c='r')
@@ -45,13 +46,20 @@ def main():
 
 
     # DOES NOT ADJUST CORRECTLY - HELP
-    adj_moca = dc.adjMocaData(moca, bio)
+    #adj_moca = dc.adjMocaData(moca, bio)
 
-    plt.plot(bio.sec, bio.horiz, c='r', label='bio horiz')
-    plt.plot(moca.sec, moca.horiz, c='y', label='moca horiz')
+    #plt.plot(bio.sec, bio.horiz, c='r', label='bio horiz')
+    #plt.plot(moca.sec, moca.horiz, c='y', label='moca horiz')
+    plt.plot(bio.epoch, bio.vert, c='r', label='bio horiz')
+    plt.plot(moca.epoch, moca.vert, c='b', label='moca horiz')
 
+    file_info = bio.get_file_info()
+    title = file_info["Movement"] + " " + muscle + "/" + stamp \
+                + " " + file_info["Run"][:-1] + " " + file_info["Run"][-1:] \
+                + " " + file_info["Speed"]
+    print(title)
     #plt.plot(adj_moca.sec_horiz, adj_moca.horiz, c='b', label='adj moca horiz')
-    plt.title("Chest AA CH2M Trial 1 Slow")
+    plt.title(title)
     plt.legend(loc="upper left")
     plt.show()
 

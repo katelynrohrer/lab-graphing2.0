@@ -7,6 +7,12 @@ Description: This file defines the classes needed to graph on making_graphs.py
 
 import csv, glob, math
 from scipy.signal import find_peaks
+import datetime, calendar
+import making_graphs
+from hachoir.parser import createParser
+from hachoir.metadata import extractMetadata
+from dateutil import tz
+import pytz
 
 
 class MocaData:
@@ -21,15 +27,18 @@ class MocaData:
         self._stamp = stamp.lower()
         self._arm_len_meters = arm_len_meters
         self._data = make_dict(self._path)
-        self._data["Seconds"] = [float(frame)/60 for frame in range(len(self._data["Frame #"]))]
+        #self._data["Seconds"] = [float(frame)/60 for frame in range(len(self._data["Frame #"]))]
         self._x, self._y = [], []  # Here, x and horiz are the same but x is raw data
         self.horiz, self.vert = [], []  # and horiz is modified. Same with y and vert
-        self.sec = self._data["Seconds"]
+        #self.sec = self._data["Seconds"]
+        self.epoch = self._data["Timestamp (microseconds)"]
         self._get_coords()
+        #self.real_time = []
+        #self._start_time = self.find_start_time()
 
         # DO NOT TRUST THESE, THEY BREAK ALL THE TIME
-        self._peaks_vert, _ = find_peaks(self.vert, height=hei, distance=dist)
-        self._peaks_horiz, _ = find_peaks(self.horiz, height=hei, distance=dist)
+        #self._peaks_vert, _ = find_peaks(self.vert, height=hei, distance=dist)
+        #self._peaks_horiz, _ = find_peaks(self.horiz, height=hei, distance=dist)
 
     def _get_coords(self):
         """
@@ -106,7 +115,7 @@ class MocaData:
         Shifts seconds by the amount given
         :param amt: The amount to adjust in px
         """
-        self.sec = [y + amt for y in self.sec]
+        self.epoch = [y + amt for y in self.epoch]
 
     def get_movement(self):
         return self._movement
@@ -123,6 +132,35 @@ class MocaData:
     def get_peaks_horiz(self):
         return self._peaks_horiz
 
+    '''
+    def find_start_time(self):
+        video_path = "ChestAA.CH2M.Run1.Fast copy/ChestAA.Cam1.CH2M.Run1.MOCA.7:25:22.Fast.MOV"
+        parser = createParser(video_path)
+        metadata = extractMetadata(parser)
+        # Get local timezone
+        to_zone = tz.tzlocal()
+
+        time_str = str(metadata.get("creation_date"))  #.astimezone(to_zone)
+        year = int(time_str[:time_str.index("-")])
+        month = int(time_str[time_str.index("-")+1:time_str.index("-")+3])
+        day = int(time_str[time_str.index("-")+4:time_str.index(" ")])
+        hour = int(time_str[time_str.index(" ")+1:time_str.index(":")])
+        minute = int(time_str[time_str.index(":")+1:time_str.index(":")+3])
+        second = int(time_str[time_str.rindex(":")+1:])
+        t = datetime.datetime(year, month, day, hour, minute, second, tzinfo=to_zone)
+        new = (calendar.timegm(t.timetuple())) * 1000000
+        #print(calendar.timegm(t.timetuple()))
+        self.real_time.append(new)
+
+        #print(datetime.datetime.fromtimestamp(new))
+        #print(self.real_time[0], "ear;oguaeopguhreaoguheo[")
+        return new
+
+    def find_real_time(self):
+        #for i in range(len(self.sec)):
+        #    self.real_time.append(self._start_time+i/60)
+        self.real_time = [self._start_time+(i/60*1000000) for i in range(len(self.sec))]
+    '''
 
 class BiostampData:
     def __init__(self, path, dist, hei=0.5):
@@ -134,7 +172,10 @@ class BiostampData:
         self._y = []
         self._z = []
         self.vert = []
-        self.sec = self._data["Seconds"]
+        self.epoch = self._data["Timestamp (microseconds)"]
+        #self.sec = self._data["Seconds"]
+        #self.real_time = []
+        #self.real_time_from_midnight = []
         self._get_coords()
         self._file_info = self.get_file_info()
         self._peaks_vert, _ = find_peaks(self.vert, height=hei, distance=dist)
@@ -162,9 +203,7 @@ class BiostampData:
                 self._z = [float(z) for z in self._data[key]]
                 self.vert = self._z.copy()
 
-        # HELP I ALSO DON'T KNOW WHY I SUBTRACT 0.22 HERE
-        # IT'S SUPPOSED TO BE THE PYTHAGOREAN THEOREM
-        self.horiz = [math.sqrt((self._x[i]**2) + (self._z[i]**2)) - 0.22 for i in range(len(self._x))]
+        self.horiz = [math.sqrt((self._x[i]**2) + (self._z[i]**2)) for i in range(len(self._x))]
 
     def get_peaks_vert(self):
         return self._peaks_vert
@@ -185,7 +224,22 @@ class BiostampData:
     def get_dict(self):
         return self._data
 
+    '''
+    def add_real_time(self):
+        # given epoch time
+        for epoch_time in self.ms:
+            #epoch_time -= 57015838440
+            date_time = datetime.datetime.fromtimestamp(epoch_time/1000000.0)
+            ms_left = epoch_time % 1000000 / 1000
 
+            datetime_str = date_time.strftime("%Y - %m - %d  %H : %M : %S")
+            #print(datetime_str)
+            datetime_str += " : " + str(ms_left)
+            self.real_time.append(datetime_str)
+            self.real_time_from_midnight.append(epoch_time)
+    '''
+
+'''
 class adjMocaData:
     """
     This is what broke my soul today. I tried to adjust the data but it's not
@@ -225,6 +279,7 @@ class adjMocaData:
                 self._LAST = x
                 break
 
+
     def get_vert_align(self):
         """
         Right now it takes the first 10 data points and tries to vertically
@@ -242,8 +297,7 @@ class adjMocaData:
 
         self.vert = [x+AVG_DIFF_VERT for x in self._moca.vert]
         self.horiz = [x+AVG_DIFF_HORIZ for x in self._moca.horiz]
-
-
+'''
 
 def make_dict(path):
     """
@@ -273,3 +327,7 @@ def make_dict(path):
             x += 1
 
     return data
+
+if __name__ == "__main__":
+    making_graphs.main()
+
