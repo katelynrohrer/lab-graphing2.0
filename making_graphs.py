@@ -14,12 +14,13 @@ from scipy.signal import find_peaks
 import datetime
 
 MANUAL_VERT_ADJ = 0
-MANUAL_HORIZ_ADJ = 0
-ARM_LEN_M = 0.69  # METERS (ESTIMATE FOR NOW)
+MANUAL_HORIZ_ADJ = 0.999
+ARM_LEN_M = 0.65  # METERS (ESTIMATE FOR NOW)
+AXIS = "vert"
 
 def main():
     # This takes a folder that contains both files to be graphed in it.
-    folder = "ChestAA.CH2M.Run1.Fast copy/"
+    folder = "ChestAA.CH2M.Run1.Fast copy"
 
     # This is used to find the correct file name for muscle and the correct
     # columns for stamp
@@ -30,37 +31,39 @@ def main():
     biostamp_file, moca_file = get_file_names(folder, muscle)
 
     # Creating data objects from data_class file
-    bio = dc.BiostampData(biostamp_file, dist=100, hei=0.5)
-    moca = dc.MocaData(moca_file, stamp, ARM_LEN_M, dist=200, hei=-0.7)
+    bio = dc.BiostampData(biostamp_file)
+    moca = dc.MocaData(moca_file, stamp, ARM_LEN_M)
 
     moca.smooth()  # Helps sometimes, hurts sometimes
 
+    # Reset times to start at 0 seconds - based on first moca frame
+    first_epoch = moca.epoch[0]
+    moca.set_adj_epoch(first_epoch)
+    bio.set_adj_epoch(first_epoch)
+    moca.set_adj_vert(bio.adj_vert[bio._peaks_vert[0]])
+
     # Manual adjustment for moca coordinates - trying to make this automatic
-    moca.vert_adj(MANUAL_VERT_ADJ)
-    moca.horiz_adj(MANUAL_HORIZ_ADJ)
+    moca.man_vert_adj(MANUAL_VERT_ADJ)
+    moca.man_horiz_adj(MANUAL_HORIZ_ADJ)
 
-    # Prints out the peaks coordinates - helps for debugging peaks
-    #plt.plot(moca.sec, moca.vert, c='r')
-    #for peak in peaks:
-    #    plt.plot(moca.sec[peak], moca.vert[peak], c='b', marker="o")
+    if AXIS == "vert":
+        plt.plot(bio.adj_epoch, bio.adj_vert, c='r', label='bio vert')
+        plt.plot(moca.adj_epoch, moca.adj_vert, c='b', label='moca vert')
+    elif AXIS == "horiz":
+        plt.plot(bio.adj_epoch, bio.adj_horiz, c='r', label='bio horiz')
+        plt.plot(moca.adj_epoch, moca.adj_horiz, c='b', label='moca horiz')
 
-
-    # DOES NOT ADJUST CORRECTLY - HELP
-    #adj_moca = dc.adjMocaData(moca, bio)
-
-    #plt.plot(bio.sec, bio.horiz, c='r', label='bio horiz')
-    #plt.plot(moca.sec, moca.horiz, c='y', label='moca horiz')
-    plt.plot(bio.epoch, bio.vert, c='r', label='bio horiz')
-    plt.plot(moca.epoch, moca.vert, c='b', label='moca horiz')
+    plt.xlim([30, 40]) # can use for 3 reps, , ylim=(ymin, ymax)
 
     file_info = bio.get_file_info()
-    title = file_info["Movement"] + " " + muscle + "/" + stamp \
-                + " " + file_info["Run"][:-1] + " " + file_info["Run"][-1:] \
-                + " " + file_info["Speed"]
-    print(title)
-    #plt.plot(adj_moca.sec_horiz, adj_moca.horiz, c='b', label='adj moca horiz')
+    title = file_info["Movement"] + " " + file_info["Subject"] + " " + muscle\
+                + "/" + stamp + " " + file_info["Run"][:-1] + " "\
+                + file_info["Run"][-1:] + " " + file_info["Speed"] + " at 999 ms"
+
     plt.title(title)
     plt.legend(loc="upper left")
+    plt.xlabel("time (s)")
+    plt.ylabel("position (m)")
     plt.show()
 
 

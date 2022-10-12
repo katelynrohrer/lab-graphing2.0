@@ -20,7 +20,7 @@ class MocaData:
     So far there's only one instance of this object which is created
     in the main. Holds all data concerning moca.
     """
-    def __init__(self, path, stamp, arm_len_meters, dist, hei):
+    def __init__(self, path, stamp, arm_len_meters):
         self._path = path
         self._file_name = self._path[self._path.rfind("/")+1:]
         self._movement = self._file_name[:self._file_name.find(".")]
@@ -33,12 +33,20 @@ class MocaData:
         #self.sec = self._data["Seconds"]
         self.epoch = self._data["Timestamp (microseconds)"]
         self._get_coords()
-        #self.real_time = []
-        #self._start_time = self.find_start_time()
+        self.adj_vert = [i-self.vert[0] for i in self.vert]
+        self.adj_horiz = [i-self.horiz[0] for i in self.horiz]
+        self.adj_epoch = self.epoch.copy()
+        self._peaks_vert = []
+        self._peaks_horiz = []
+        self._find_peaks()
 
-        # DO NOT TRUST THESE, THEY BREAK ALL THE TIME
         #self._peaks_vert, _ = find_peaks(self.vert, height=hei, distance=dist)
         #self._peaks_horiz, _ = find_peaks(self.horiz, height=hei, distance=dist)
+
+    def _find_peaks(self):
+        if self._movement == "ChestAA" and "fast" in self._file_name.lower():
+            self._peaks_vert, _ = find_peaks(self.adj_vert, height=0.5, distance=100)
+            self._peaks_horiz, _ = find_peaks(self.adj_horiz, height=0.5, distance=100)
 
     def _get_coords(self):
         """
@@ -101,21 +109,29 @@ class MocaData:
             if abs(self.horiz[i] - self.horiz[i+1]) > amount:
                 self.horiz[i+1] = self.horiz[i]
 
-    def vert_adj(self, amt):
+    def man_vert_adj(self, amt):
         """
         Shifts vertical and horizontal data (both of these are y-axis, so
         shifting both together doesn't hurt anything for now - might later)
         :param amt: The amount to adjust in px
         """
-        self.vert = [x + amt for x in self.vert]
-        self.horiz = [y + amt for y in self.horiz]
+        self.adj_vert = [x + amt for x in self.adj_vert]
+        self.adj_horiz = [y + amt for y in self.adj_horiz]
 
-    def horiz_adj(self, amt):
+    def man_horiz_adj(self, amt):
         """
         Shifts seconds by the amount given
         :param amt: The amount to adjust in px
         """
-        self.epoch = [y + amt for y in self.epoch]
+        self.adj_epoch = [y + amt for y in self.adj_epoch]
+
+    def set_adj_epoch(self, first_epoch):
+        self.adj_epoch = [(i - first_epoch) / 1000000 for i in self.epoch]
+
+    def set_adj_vert(self, bio_peak_val):
+        moca_peak_val = self.adj_vert[self._peaks_vert[0]]
+        change = -(moca_peak_val - bio_peak_val) - 0.06  # ESTIMATE - MOCA ABOUT 2.5IN LOWER THAN BIO
+        self.adj_vert = [i + change for i in self.adj_vert]
 
     def get_movement(self):
         return self._movement
@@ -132,38 +148,9 @@ class MocaData:
     def get_peaks_horiz(self):
         return self._peaks_horiz
 
-    '''
-    def find_start_time(self):
-        video_path = "ChestAA.CH2M.Run1.Fast copy/ChestAA.Cam1.CH2M.Run1.MOCA.7:25:22.Fast.MOV"
-        parser = createParser(video_path)
-        metadata = extractMetadata(parser)
-        # Get local timezone
-        to_zone = tz.tzlocal()
-
-        time_str = str(metadata.get("creation_date"))  #.astimezone(to_zone)
-        year = int(time_str[:time_str.index("-")])
-        month = int(time_str[time_str.index("-")+1:time_str.index("-")+3])
-        day = int(time_str[time_str.index("-")+4:time_str.index(" ")])
-        hour = int(time_str[time_str.index(" ")+1:time_str.index(":")])
-        minute = int(time_str[time_str.index(":")+1:time_str.index(":")+3])
-        second = int(time_str[time_str.rindex(":")+1:])
-        t = datetime.datetime(year, month, day, hour, minute, second, tzinfo=to_zone)
-        new = (calendar.timegm(t.timetuple())) * 1000000
-        #print(calendar.timegm(t.timetuple()))
-        self.real_time.append(new)
-
-        #print(datetime.datetime.fromtimestamp(new))
-        #print(self.real_time[0], "ear;oguaeopguhreaoguheo[")
-        return new
-
-    def find_real_time(self):
-        #for i in range(len(self.sec)):
-        #    self.real_time.append(self._start_time+i/60)
-        self.real_time = [self._start_time+(i/60*1000000) for i in range(len(self.sec))]
-    '''
 
 class BiostampData:
-    def __init__(self, path, dist, hei=0.5):
+    def __init__(self, path):
         self._path = path
         self._data = make_dict(self._path)
         self._add_seconds()
@@ -173,13 +160,21 @@ class BiostampData:
         self._z = []
         self.vert = []
         self.epoch = self._data["Timestamp (microseconds)"]
-        #self.sec = self._data["Seconds"]
-        #self.real_time = []
-        #self.real_time_from_midnight = []
         self._get_coords()
         self._file_info = self.get_file_info()
-        self._peaks_vert, _ = find_peaks(self.vert, height=hei, distance=dist)
-        self._peaks_horiz, _ = find_peaks(self.horiz, height=hei, distance=dist)
+        self.adj_vert = [i-self.vert[0] for i in self.vert]
+        self.adj_horiz = [i-self.horiz[0] for i in self.horiz]
+        self.adj_epoch = self.epoch.copy()
+        self._peaks_vert = []
+        self._peaks_horiz = []
+        self._find_peaks()
+
+    def _find_peaks(self):
+        if self._file_info["Movement"].lower() == "chestaa" \
+                and self._file_info["Speed"].lower() == "fast":
+            self._peaks_vert, _ = find_peaks(self.adj_vert, height=0.4, distance=100)
+            self._peaks_horiz, _ = find_peaks(self.adj_horiz, height=0.5, distance=100)
+
 
     def _add_seconds(self):
         self._data["Seconds"] = []
@@ -224,80 +219,10 @@ class BiostampData:
     def get_dict(self):
         return self._data
 
-    '''
-    def add_real_time(self):
-        # given epoch time
-        for epoch_time in self.ms:
-            #epoch_time -= 57015838440
-            date_time = datetime.datetime.fromtimestamp(epoch_time/1000000.0)
-            ms_left = epoch_time % 1000000 / 1000
-
-            datetime_str = date_time.strftime("%Y - %m - %d  %H : %M : %S")
-            #print(datetime_str)
-            datetime_str += " : " + str(ms_left)
-            self.real_time.append(datetime_str)
-            self.real_time_from_midnight.append(epoch_time)
-    '''
-
-'''
-class adjMocaData:
-    """
-    This is what broke my soul today. I tried to adjust the data but it's not
-    even close to working. Scrap the whole thing if you want idc
-    It might help to make an adjMocaData class with 2 objects:
-        1 for vert axis and 1 for horiz
-    Cause that was my big issue with this
-    """
-    def __init__(self, mocaObj, bioObj):
-        self._moca = mocaObj
-        self._bio = bioObj
-
-        # Trying to align the start and end points of the data through
-        # first and last indexes
-        self._FIRST_vert = len(self._bio.sec[0: self._bio.get_peaks_vert()[0]])
-        self._FIRST_horiz = len(self._bio.sec[0: self._bio.get_peaks_horiz()[0]])
-        self._LAST = self._moca.sec[0]
-        self._get_last()
-
-        self.sec_vert = self._moca.sec[self._moca.get_peaks_vert()[0]:]
-        self.sec_horiz = self._moca.sec[self._moca.get_peaks_horiz()[0]:]
-
-        self._peaks_vert = [x-self._moca.get_peaks_vert()[0] for x in self._moca.get_peaks_vert()]
-        self._peaks_horiz = [x-self._moca.get_peaks_horiz()[0] for x in self._moca.get_peaks_horiz()]
-
-        self.vert = self._moca.vert[self._moca.get_peaks_vert()[0]:]
-        self.horiz = self._moca.horiz[self._moca.get_peaks_horiz()[0]:]
+    def set_adj_epoch(self, first_epoch):
+        self.adj_epoch = [(i-first_epoch)/1000000 for i in self.epoch]
 
 
-    def _get_last(self):
-        """
-        Gets the value of the last data point in biostamp and finds the last
-        moca index using that
-        """
-        for x in range(len(self._moca.sec)):
-            if self._moca.sec[x] >= self._bio.sec[-1]:
-                self._LAST = x
-                break
-
-
-    def get_vert_align(self):
-        """
-        Right now it takes the first 10 data points and tries to vertically
-        align the data through their average - it's inaccurate but okay for
-        now as an estimate
-        """
-        DIFFS_VERT = []
-        DIFFS_HORIZ = []
-        for i in range(10):
-            DIFFS_VERT.append(float(self._bio.vert[i]) - float(self._moca.vert[i]))
-            DIFFS_HORIZ.append(float(self._bio.horiz[i]) - float(self._moca.horiz[i]))
-
-        AVG_DIFF_VERT = sum(DIFFS_VERT) / 10
-        AVG_DIFF_HORIZ = sum(DIFFS_HORIZ) / 10
-
-        self.vert = [x+AVG_DIFF_VERT for x in self._moca.vert]
-        self.horiz = [x+AVG_DIFF_HORIZ for x in self._moca.horiz]
-'''
 
 def make_dict(path):
     """
