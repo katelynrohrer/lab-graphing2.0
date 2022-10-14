@@ -36,17 +36,23 @@ class MocaData:
         self.adj_vert = [i-self.vert[0] for i in self.vert]
         self.adj_horiz = [i-self.horiz[0] for i in self.horiz]
         self.adj_epoch = self.epoch.copy()
+        '''
         self._peaks_vert = []
         self._peaks_horiz = []
         self._find_peaks()
-
-        #self._peaks_vert, _ = find_peaks(self.vert, height=hei, distance=dist)
-        #self._peaks_horiz, _ = find_peaks(self.horiz, height=hei, distance=dist)
-
+        '''
+    '''
     def _find_peaks(self):
-        if self._movement == "ChestAA" and "fast" in self._file_name.lower():
+        print(self.adj_vert)
+        print()
+        print(self.adj_horiz)
+        if self._movement == "ChestAA" and "fast" in self._file_name.lower() and "bicep" in self._file_name.lower():
             self._peaks_vert, _ = find_peaks(self.adj_vert, height=0.5, distance=100)
             self._peaks_horiz, _ = find_peaks(self.adj_horiz, height=0.5, distance=100)
+        elif self._movement == "ChestAA" and "fast" in self._file_name.lower() and "brachio" in self._file_name.lower():
+            self._peaks_vert, _ = find_peaks(self.adj_vert, height=0.4, distance=100)
+            self._peaks_horiz, _ = find_peaks(self.adj_horiz, height=0.4, distance=100)
+    '''
 
     def _get_coords(self):
         """
@@ -56,8 +62,7 @@ class MocaData:
         scale = self._scale()  # Scales px to m
         for key in self._data:
             if "x" in key.lower() and self._stamp in key.lower():
-                # I HAVE NO IDEA WHY I HAVE TO ADD 1.2 HELP
-                self._x = [-float(x)*scale+1.2 for x in self._data[key]]
+                self._x = [-float(x)*scale for x in self._data[key]]
                 self.horiz = self._x.copy()
             elif "y" in key.lower() and self._stamp in key.lower():
                 self._y = [-float(y)*scale for y in self._data[key]]
@@ -127,12 +132,12 @@ class MocaData:
 
     def set_adj_epoch(self, first_epoch):
         self.adj_epoch = [(i - first_epoch) / 1000000 for i in self.epoch]
-
-    def set_adj_vert(self, bio_peak_val):
+    '''
+    def set_adj_vert(self, bio_peak_val, adj):
         moca_peak_val = self.adj_vert[self._peaks_vert[0]]
-        change = -(moca_peak_val - bio_peak_val) - 0.06  # ESTIMATE - MOCA ABOUT 2.5IN LOWER THAN BIO
+        change = -(moca_peak_val - bio_peak_val) - adj
         self.adj_vert = [i + change for i in self.adj_vert]
-
+    '''
     def get_movement(self):
         return self._movement
 
@@ -174,7 +179,6 @@ class BiostampData:
                 and self._file_info["Speed"].lower() == "fast":
             self._peaks_vert, _ = find_peaks(self.adj_vert, height=0.4, distance=100)
             self._peaks_horiz, _ = find_peaks(self.adj_horiz, height=0.5, distance=100)
-
 
     def _add_seconds(self):
         self._data["Seconds"] = []
@@ -223,7 +227,6 @@ class BiostampData:
         self.adj_epoch = [(i-first_epoch)/1000000 for i in self.epoch]
 
 
-
 def make_dict(path):
     """
     Makes a dictionary of the data from a csv file
@@ -252,6 +255,7 @@ def make_dict(path):
             x += 1
 
     return data
+
 
 if __name__ == "__main__":
     making_graphs.main()
