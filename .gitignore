@@ -6,6 +6,7 @@
 .LSOverride
 *.mp4
 *.mov
+*.png
 
 # Icon must end with two \r
 Icon
