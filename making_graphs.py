@@ -17,11 +17,11 @@ MANUAL_VERT_ADJ = 0
 MANUAL_HORIZ_ADJ = 0
 ARM_LEN_M = 0.8509  # METERS
 WRIST_TO_HAND_LEN = 0.06  # About 2.5in
-FOLDER = "ChestAA.CH2M.Run1.Fast copy"  # contains all the necessary files
-MUSCLE = "Bicep"
-STAMP = "Shoulder"
+FOLDER = "ChestAA.CH2M.Run1.Slow copy"  # contains all the necessary files
+MUSCLE = "Brachio"
+STAMP = "Hand"
 
-#AXIS = "horiz"
+AXIS = "horiz"
 
 def main():
     # Gathering file names
@@ -43,7 +43,8 @@ def main():
     moca.man_vert_adj(MANUAL_VERT_ADJ)
     moca.man_horiz_adj(MANUAL_HORIZ_ADJ)
 
-    plot(bio, moca)
+    #plot(bio, moca)
+    one_plot(bio, moca)
 
 
 def plot(bio, moca):
@@ -84,15 +85,6 @@ def plot(bio, moca):
     fig4.set_ylabel("position (m)")
     fig4.legend(loc="upper left")
 
-    '''
-    if AXIS == "vert":
-        plt.plot(bio.adj_epoch, bio.adj_vert, c='r', label='bio vert')
-        plt.plot(moca.adj_epoch, moca.adj_vert, c='b', label='moca vert')
-    elif AXIS == "horiz":
-        plt.plot(moca.adj_epoch, moca.adj_horiz, c='b', label='moca horiz')
-        plt.plot(bio.adj_epoch, bio.adj_horiz, c='r', label='bio horiz')
-    '''
-
     file_info = bio.get_file_info()
     title = file_info["Movement"] + " " + file_info["Subject"] + " " + MUSCLE\
                 + "/" + STAMP + " " + file_info["Run"][:-1] + " "\
@@ -101,6 +93,32 @@ def plot(bio, moca):
     fig.suptitle(title, size=25)
     fig.savefig(FOLDER + "/" + MUSCLE + '.png', bbox_inches='tight', pad_inches=0.5)
     plt.legend(loc="upper left")
+    plt.show()
+
+
+def one_plot(bio, moca):
+    moca.smooth(amount=0.1)
+
+    if AXIS == "vert":
+        plt.plot(bio.adj_epoch, bio.adj_vert, c='r', label='bio vert')
+        plt.plot(moca.adj_epoch, moca.adj_vert, c='b', label='moca vert')
+    elif AXIS == "horiz":
+        plt.plot(moca.adj_epoch, moca.adj_horiz, c='b', label='moca horiz')
+        plt.plot(bio.adj_epoch, bio.adj_horiz, c='r', label='bio horiz')
+
+    file_info = bio.get_file_info()
+    title = file_info["Movement"] + " " + file_info["Subject"] + " " + MUSCLE\
+                #+ "/" + STAMP + " " + file_info["Run"][:-1] + " "\
+               # + file_info["Run"][-1:] + " " + file_info["Speed"]
+    plt.title(title)
+    plt.legend(loc="upper left")
+    save_fig_name = FOLDER + "/" + MUSCLE + "-" + AXIS + '.png'
+    plt.xlim((15, 62))
+    plt.ylim((-0.1, 1))
+    plt.xlabel("time (s)")
+    plt.ylabel("position (m)")
+    #plt.savefig(FOLDER + "/" + save_fig_name, bbox_inches='tight', pad_inches=0.5)
+
     plt.show()
 
 
@@ -118,7 +136,8 @@ def get_file_names():
         if MUSCLE in file and "position" in file:
             biostamp_file = file
         if "accel" not in file and "gyro" not in file \
-                and "position" not in file and "velocity" not in file:
+                and "position" not in file and "velocity" not in file\
+                and "Epoch" in file:
             moca_file = file
 
     assert biostamp_file != "", "File Not Found"

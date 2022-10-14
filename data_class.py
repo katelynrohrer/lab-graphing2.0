@@ -107,12 +107,12 @@ class MocaData:
         and skipping those frames
         :param amount: The distance of the jump in meters
         """
-        for i in range(len(self.vert)-1):
-            if abs(self.vert[i] - self.vert[i+1]) > amount:
-                self.vert[i+1] = self.vert[i]
+        for i in range(len(self.adj_vert)-1):
+            if abs(self.adj_vert[i] - self.adj_vert[i+1]) > amount:
+                self.adj_vert[i+1] = self.adj_vert[i]
 
-            if abs(self.horiz[i] - self.horiz[i+1]) > amount:
-                self.horiz[i+1] = self.horiz[i]
+            if abs(self.adj_horiz[i] - self.adj_horiz[i+1]) > amount:
+                self.adj_horiz[i+1] = self.adj_horiz[i]
 
     def man_vert_adj(self, amt):
         """

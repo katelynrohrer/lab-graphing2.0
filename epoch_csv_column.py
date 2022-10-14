@@ -66,8 +66,8 @@ def export(file, data):
 
 
 def main():
-    video = "ChestAA.CH2M.Run1.Fast copy/ChestAA.Cam1.CH2M.Run1.MOCA.7:25:22.Fast.MOV"
-    file = "ChestAA.CH2M.Run1.Fast copy/ChestAA.Cam1.CH2M.Run1.MOCA.7:25:22.Fast.csv"
+    video = "ChestAA.CH2M.Run1.Slow copy/ChestAA.Cam1.CH2M.Run1.MOCA.7:25:22.Slow.MOV"
+    file = "ChestAA.CH2M.Run1.Slow copy/ChestAA.Cam1.CH2M.Run1.MOCA.7:25:22.Slow.csv"
 
     add_col(file, video)
 
