@@ -2,7 +2,16 @@
 import csv, os
 import get_epoch_time as epoch
 
-def make_dict(path):
+CSV_PATH = "ChestAA.CH2M.Run1.Slow copy/ChestAA.Cam1.CH2M.Run1.MOCA.7:25:22.Slow.csv"
+
+# !! EITHER VIDEO_PATH OR START_EPOCH MUST BE EMPTY !!
+VIDEO_PATH = ""
+
+# ChestAA.CH2M.Run1.Fast Start Epoch - 1658789494
+# ChestAA.CH2M.Run1.Slow Start Epoch - 1658789401
+START_EPOCH = int("1658789494")  # IMPORTANT - THIS IS A 10-DIGIT NUMBER
+
+def make_dict():
     """
     Makes a dictionary of the data from a csv file
     First row is key names and each column is a list within
@@ -11,7 +20,7 @@ def make_dict(path):
     :return: Returns a dictionary of the data
     """
     data = {}
-    csv_reader = csv.reader(open(path, 'r'))
+    csv_reader = csv.reader(open(CSV_PATH, 'r'))
 
     # Setup dictionary using first row
     for row in csv_reader:
@@ -32,23 +41,30 @@ def make_dict(path):
     return data
 
 
-def add_col(file, video):
-    start_epoch = epoch.get_epoch_time(video)
-    data = make_dict(file)
+def add_col_using_video():
+    start_epoch = epoch.get_epoch_time(VIDEO_PATH)
+    data = make_dict()
     data["Timestamp (microseconds)"] = []
     for i in range(len(data["Frame #"])):
         data["Timestamp (microseconds)"].append((start_epoch + i/60) * 1000000)
-    export(file, data)
+    export(data)
 
 
-def export(file, data):
-    folder = file[:file.rindex("/") + 1]
-    file_name = file[file.rindex("/")+1:-4]
-    print(file_name)
+def add_col_using_start_epoch():
+    data = make_dict()
+    data["Timestamp (microseconds)"] = []
+    for i in range(len(data["Frame #"])):
+        data["Timestamp (microseconds)"].append((START_EPOCH + i/60) * 1000000)
+    export(data)
+
+
+def export(data):
+    folder = CSV_PATH[:CSV_PATH.rindex("/") + 1]
+    file_name = CSV_PATH[CSV_PATH.rindex("/")+1:-4]
     raw_row = list(data.keys())
 
     current_dir = os.path.abspath('')
-    file_path = os.path.join(current_dir, folder, file_name + ".Epoch.csv")
+    file_path = os.path.join(current_dir, folder, file_name + ".Epoch22.csv")
 
     # Labels
     with open(file_path, 'w', newline='') as csv_file:
@@ -66,10 +82,13 @@ def export(file, data):
 
 
 def main():
-    video = "ChestAA.CH2M.Run1.Slow copy/ChestAA.Cam1.CH2M.Run1.MOCA.7:25:22.Slow.MOV"
-    file = "ChestAA.CH2M.Run1.Slow copy/ChestAA.Cam1.CH2M.Run1.MOCA.7:25:22.Slow.csv"
-
-    add_col(file, video)
+    assert not VIDEO_PATH or not START_EPOCH, "Cannot have both filled in"
+    if VIDEO_PATH:
+        add_col_using_video()
+    elif START_EPOCH:
+        add_col_using_start_epoch()
+    else:
+        print("ERROR: Not completed")
 
 
 if __name__ == "__main__":

@@ -139,7 +139,7 @@ def get_file_names():
                 and "position" not in file and "velocity" not in file\
                 and "Epoch" in file:
             moca_file = file
-
+    print(biostamp_file)
     assert biostamp_file != "", "File Not Found"
     assert moca_file != "", "File Not Found"
 
