@@ -7,11 +7,7 @@
 *.mp4
 *.mov
 *.png
-*.arm.csv
-*.head.csv
-*.pink.csv
-*.green.csv
-*.orange.csv
+*.csv
 
 # Icon must end with two \r
 Icon
