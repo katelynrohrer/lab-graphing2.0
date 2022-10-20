@@ -64,7 +64,7 @@ def export(data):
     raw_row = list(data.keys())
 
     current_dir = os.path.abspath('')
-    file_path = os.path.join(current_dir, folder, file_name + ".Epoch22.csv")
+    file_path = os.path.join(current_dir, folder, file_name + ".Epoch.csv")
 
     # Labels
     with open(file_path, 'w', newline='') as csv_file:

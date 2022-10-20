@@ -36,23 +36,16 @@ class MocaData:
         self.adj_vert = [i-self.vert[0] for i in self.vert]
         self.adj_horiz = [i-self.horiz[0] for i in self.horiz]
         self.adj_epoch = self.epoch.copy()
-        '''
+
         self._peaks_vert = []
         self._peaks_horiz = []
         self._find_peaks()
-        '''
-    '''
+
     def _find_peaks(self):
-        print(self.adj_vert)
-        print()
-        print(self.adj_horiz)
-        if self._movement == "ChestAA" and "fast" in self._file_name.lower() and "bicep" in self._file_name.lower():
-            self._peaks_vert, _ = find_peaks(self.adj_vert, height=0.5, distance=100)
-            self._peaks_horiz, _ = find_peaks(self.adj_horiz, height=0.5, distance=100)
-        elif self._movement == "ChestAA" and "fast" in self._file_name.lower() and "brachio" in self._file_name.lower():
-            self._peaks_vert, _ = find_peaks(self.adj_vert, height=0.4, distance=100)
-            self._peaks_horiz, _ = find_peaks(self.adj_horiz, height=0.4, distance=100)
-    '''
+        if self._movement == "ChestAA" and "fast" in self._file_name.lower():
+            self._peaks_vert, _ = find_peaks(self.adj_vert, height=0.75, distance=100)
+            self._peaks_horiz, _ = find_peaks(self.adj_horiz, height=0.85, distance=100)
+        # TODO ALL OTHER SCALES
 
     def _get_coords(self):
         """
@@ -132,12 +125,12 @@ class MocaData:
 
     def set_adj_epoch(self, first_epoch):
         self.adj_epoch = [(i - first_epoch) / 1000000 for i in self.epoch]
-    '''
+
     def set_adj_vert(self, bio_peak_val, adj):
         moca_peak_val = self.adj_vert[self._peaks_vert[0]]
         change = -(moca_peak_val - bio_peak_val) - adj
         self.adj_vert = [i + change for i in self.adj_vert]
-    '''
+
     def get_movement(self):
         return self._movement
 
